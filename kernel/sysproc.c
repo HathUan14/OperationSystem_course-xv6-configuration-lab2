@@ -75,6 +75,36 @@ int
 sys_pgaccess(void)
 {
   // lab pgtbl: your code here.
+  // Code r
+  uint64 start_va;   // arg0
+  int n;             // arg1
+  uint64 user_mask;  // arg2
+  struct proc *p = myproc();
+
+  // lấy tham số syscall (phiên bản xv6 bạn đang dùng trả về void)
+  argaddr(0, &start_va);
+  argint(1, &n);
+  argaddr(2, &user_mask);
+
+  if(n <= 0 || n > 32)
+    return -1;
+
+  unsigned int mask = 0;
+
+  for(int i = 0; i < n; i++){
+    uint64 va = start_va + (uint64)i * PGSIZE;
+    pte_t *pte = walk(p->pagetable, va, 0);
+    if(pte && (*pte & PTE_V)){
+      if(*pte & PTE_A){
+        mask |= (1u << i);
+        *pte &= ~PTE_A;   // clear accessed bit
+      }
+    }
+  }
+
+  if(copyout(p->pagetable, user_mask, (char*)&mask, sizeof(mask)) < 0)
+    return -1;
+
   return 0;
 }
 #endif
